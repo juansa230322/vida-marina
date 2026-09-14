@@ -302,7 +302,7 @@ class AdminCoordinator extends User {
   }
 
   getRoleTitle() {
-    return '';
+    return '👑 Coordinadora';
   }
 }
 
@@ -1575,9 +1575,6 @@ class DatabaseService {
                   <div className="flex items-center gap-1.5 leading-none">
                     <span className="text-base sm:text-lg font-black tracking-wider text-white group-hover:text-cyan-300 transition-colors">
                       VIDA MARINA
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
-                      
                     </span>
                   </div>
                   <p className="text-[10px] text-cyan-200/70 tracking-tight hidden sm:block">
@@ -3180,17 +3177,21 @@ class DatabaseService {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="text-cyan-300 font-bold text-sm">VIDA MARINA</p>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">POO</span>
                   </div>
                   <p>“Explora, aprende, participa y protege nuestros océanos.” © 2026 - 2027</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  DatabaseService (POO Singleton Activo)
-                </span>
+              </div>
+            </div>
+          </footer>
 
-                
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
 </html>
