@@ -44,6 +44,8 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Supabase: base de datos en la nube para sincronizar el foro entre dispositivos -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Confetti CDN -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -302,7 +304,7 @@ class AdminCoordinator extends User {
   }
 
   getRoleTitle() {
-    return '';
+    return '👑 Coordinadora';
   }
 }
 
@@ -884,7 +886,7 @@ class DatabaseService {
     const seedBadgesData = [
       {
         id: 'badge-1',
-        icon: '',
+        icon: '🐚',
         name: 'Primer Voluntariado',
         description: 'Reconocimiento otorgado por completar tu primera inscripción y jornada ecológica.',
         requirement: 'Inscríbete y asiste a 1 actividad comunitaria',
@@ -892,14 +894,14 @@ class DatabaseService {
       },
       {
         id: 'badge-2',
-        icon: '',
+        icon: '🐠',
         name: 'Voluntario del Océano',
         description: 'Constancia activa en jornadas y protección de costas marinas.',
         requirement: 'Participa en 5 actividades registradas'
       },
       {
         id: 'badge-3',
-        icon: '',
+        icon: '🐢',
         name: 'Protector de Especies',
         description: 'Participación en talleres o jornadas enfocadas en fauna marina vulnerable.',
         requirement: 'Participa en talleres de tortugas o fauna protegida',
@@ -907,35 +909,35 @@ class DatabaseService {
       },
       {
         id: 'badge-4',
-        icon: '',
+        icon: '🌊',
         name: 'Guardián del Océano',
         description: 'Máximo galardón por liderazgo continuo en limpieza y restauración de playas.',
         requirement: 'Completa 10 actividades de voluntariado'
       },
       {
         id: 'badge-5',
-        icon: '',
+        icon: '🪸',
         name: 'Protector de Ecosistemas',
         description: 'Compromiso directo en siembra de corales o reforestación de manglares.',
         requirement: 'Participa en actividades de siembra o restauración'
       },
       {
         id: 'badge-6',
-        icon: '',
+        icon: '🐋',
         name: 'Embajador Marino',
         description: 'El mayor honor de la plataforma: combina debate comunitario y acción en terreno.',
         requirement: 'Alcanza nivel 4+, 5 actividades y 10 aportes en el foro'
       },
       {
         id: 'badge-7',
-        icon: '',
+        icon: '💬',
         name: 'Voz Comunitaria',
         description: 'Reconocimiento a la participación constructiva y debate en el foro.',
         requirement: 'Publica temas útiles y responde preguntas de otros miembros'
       },
       {
         id: 'badge-8',
-        icon: '',
+        icon: '📅',
         name: 'Planificador Activo',
         description: 'Organización ejemplar en la agenda de conservación oceánica.',
         requirement: 'Inscríbete a 3 o más actividades del calendario'
@@ -951,7 +953,7 @@ class DatabaseService {
         category: 'Conservación',
         date: 'Hace 2 días',
         title: '¿Qué hábitos cotidianos recomiendan para reducir el plástico que llega a los mares?',
-        content: 'Hola a todos los voluntarios . Tras nuestra reciente jornada de limpieza en Playa Coral notamos una gran presencia de microplásticos en la arena. ¿Cuáles consideran que son los hábitos más sencillos pero contundentes para evitar que estos desechos lleguen a los ríos y al mar?',
+        content: 'Hola a todos los voluntarios 👋. Tras nuestra reciente jornada de limpieza en Playa Coral notamos una gran presencia de microplásticos en la arena. ¿Cuáles consideran que son los hábitos más sencillos pero contundentes para evitar que estos desechos lleguen a los ríos y al mar?',
         likes: 19,
         isPinned: false,
         comments: [
@@ -980,6 +982,91 @@ class DatabaseService {
     ];
 
     // ================================================================
+    // SUPABASE - FORO COMPARTIDO ENTRE PC Y CELULAR
+    // ================================================================
+    // PASO FINAL: reemplaza estos dos valores por los de tu proyecto Supabase.
+    const VIDA_MARINA_SUPABASE_URL = 'https://cwloplscncnokpxbnalo.supabase.co';
+    const VIDA_MARINA_SUPABASE_KEY = 'sb_publishable_595MB3MoZ2HK4I_4QWcE2Q_8AGQ0JHd';
+
+    const vidaMarinaSupabaseConfigured =
+      typeof window.supabase !== 'undefined' &&
+      VIDA_MARINA_SUPABASE_URL !== 'TU_SUPABASE_URL' &&
+      VIDA_MARINA_SUPABASE_KEY !== 'TU_SUPABASE_PUBLISHABLE_KEY';
+
+    const vidaMarinaSupabase = vidaMarinaSupabaseConfigured
+      ? window.supabase.createClient(VIDA_MARINA_SUPABASE_URL, VIDA_MARINA_SUPABASE_KEY)
+      : null;
+
+    const VidaMarinaCloud = {
+      isConfigured: vidaMarinaSupabaseConfigured,
+
+      async loadForum() {
+        if (!vidaMarinaSupabase) return null;
+
+        const { data, error } = await vidaMarinaSupabase
+          .from('vida_marina_forum')
+          .select('posts')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (error) {
+          console.error('VIDA MARINA - Error cargando foro:', error);
+          return null;
+        }
+
+        return data ? data.posts : null;
+      },
+
+      async saveForum(posts) {
+        if (!vidaMarinaSupabase) return;
+
+        const { error } = await vidaMarinaSupabase
+          .from('vida_marina_forum')
+          .upsert({
+            id: 1,
+            posts: posts.map(p => p.toJSON()),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+
+        if (error) {
+          console.error('VIDA MARINA - Error guardando foro:', error);
+        }
+      },
+
+      subscribe(onPosts) {
+        if (!vidaMarinaSupabase) return null;
+
+        const channel = vidaMarinaSupabase
+          .channel('vida-marina-forum-sync')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'vida_marina_forum',
+              filter: 'id=eq.1'
+            },
+            payload => {
+              if (payload.new && payload.new.posts) {
+                onPosts(payload.new.posts);
+              }
+            }
+          )
+          .subscribe(status => {
+            console.log('VIDA MARINA - Sincronización del foro:', status);
+          });
+
+        return channel;
+      },
+
+      async unsubscribe(channel) {
+        if (channel && vidaMarinaSupabase) {
+          await vidaMarinaSupabase.removeChannel(channel);
+        }
+      }
+    };
+
+    // ================================================================
     // APLICACIÓN REACT QUE EJECUTA LA ARQUITECTURA POO
     // ================================================================
     function App() {
@@ -995,13 +1082,67 @@ class DatabaseService {
 
       const [currentView, setCurrentView] = useState('home');
 
-      // Persistencia automática a través de DatabaseService (Singleton)
+      // Sincronización inicial del foro con Supabase + actualizaciones en tiempo real.
+      const forumCloudReadyRef = useRef(false);
+      const forumCloudApplyingRef = useRef(false);
+
+      useEffect(() => {
+        let cancelled = false;
+        let channel = null;
+
+        const startCloudForum = async () => {
+          if (!VidaMarinaCloud.isConfigured) {
+            forumCloudReadyRef.current = true;
+            return;
+          }
+
+          const cloudPosts = await VidaMarinaCloud.loadForum();
+
+          if (cancelled) return;
+
+          if (Array.isArray(cloudPosts)) {
+            forumCloudApplyingRef.current = true;
+            setForumPosts(cloudPosts.map(p => db.hydratePost(p)));
+            setTimeout(() => {
+              forumCloudApplyingRef.current = false;
+            }, 0);
+          } else {
+            // Primera ejecución: sube los datos iniciales del foro a la nube.
+            await VidaMarinaCloud.saveForum(forumPosts);
+          }
+
+          forumCloudReadyRef.current = true;
+
+          channel = VidaMarinaCloud.subscribe(cloudPostsFromRealtime => {
+            if (cancelled) return;
+            forumCloudApplyingRef.current = true;
+            setForumPosts(cloudPostsFromRealtime.map(p => db.hydratePost(p)));
+            setTimeout(() => {
+              forumCloudApplyingRef.current = false;
+            }, 0);
+          });
+        };
+
+        startCloudForum();
+
+        return () => {
+          cancelled = true;
+          VidaMarinaCloud.unsubscribe(channel);
+        };
+      }, [db]);
+
+      // Persistencia local + nube. Usuarios, actividades y badges siguen locales;
+      // el FORO se guarda además en Supabase para compartirlo entre dispositivos.
       useEffect(() => {
         db.saveUsers(users);
         db.saveCurrentUserId(currentUserId);
         db.saveActivities(activities);
         db.saveBadges(badges);
         db.saveForum(forumPosts);
+
+        if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current && !forumCloudApplyingRef.current) {
+          VidaMarinaCloud.saveForum(forumPosts);
+        }
       }, [users, currentUserId, activities, badges, forumPosts, db]);
 
       // Usuario activo (Instancia polimórfica de Volunteer o AdminCoordinator o null)
@@ -1593,7 +1734,7 @@ class DatabaseService {
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  <span></span>
+                  <span>🏠</span>
                   <span className="hidden sm:inline">Inicio</span>
                 </button>
 
@@ -1605,7 +1746,7 @@ class DatabaseService {
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  <span></span>
+                  <span>📅</span>
                   <span>Calendario</span>
                 </button>
 
@@ -1617,7 +1758,7 @@ class DatabaseService {
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  <span></span>
+                  <span>💬</span>
                   <span>Foro</span>
                 </button>
 
@@ -1629,7 +1770,7 @@ class DatabaseService {
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  <span></span>
+                  <span>🏆</span>
                   <span>Insignias</span>
                 </button>
               </nav>
@@ -1674,7 +1815,7 @@ class DatabaseService {
                       className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-300 border border-slate-700/60 hover:border-red-500/30 transition-all text-xs"
                       title="Cerrar Sesión"
                     >
-                      cerrar sesion
+                      🚪
                     </button>
                   </div>
                 ) : (
@@ -1722,7 +1863,7 @@ class DatabaseService {
                     </div>
 
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 backdrop-blur">
-                      <span> </span> Plataforma de Conservación Marina 
+                      <span>🪸</span> Plataforma de Conservación Marina 
                     </div>
 
                     <h1 className="text-4xl sm:text-6xl font-black ocean-gradient-text tracking-tight drop-shadow-sm">
@@ -1742,13 +1883,13 @@ class DatabaseService {
                         onClick={() => setCurrentView('calendar')}
                         className="px-6 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-cyan-500/30 transform hover:-translate-y-0.5 flex items-center gap-2"
                       >
-                        <span> </span> Ver Calendario 2026 - 2027
+                        <span>📅</span> Ver Calendario 2026 - 2027
                       </button>
                       <button
                         onClick={() => setCurrentView('forum')}
                         className="px-6 py-3 rounded-2xl bg-[#0b2545]/80 hover:bg-[#0b2545] border border-cyan-400/40 text-cyan-300 font-bold text-sm transition-all backdrop-blur transform hover:-translate-y-0.5 flex items-center gap-2"
                       >
-                        <span> </span> Debate en el Foro
+                        <span>💬</span> Debate en el Foro
                       </button>
                     </div>
                   </div>
@@ -1775,7 +1916,7 @@ class DatabaseService {
                         </span>
                       </div>
                       <h3 className="text-xl font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
-                        <span> </span> Calendario 2026 - 2027
+                        <span>📅</span> Calendario 2026 - 2027
                       </h3>
                       <p className="text-xs text-slate-300 leading-relaxed">
                         Explora la agenda completa de los años 2026 y 2027 con cuadrícula interactiva de 7 días y cálculo de cupos en vivo.
@@ -1804,7 +1945,7 @@ class DatabaseService {
                         </span>
                       </div>
                       <h3 className="text-xl font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
-                        <span> </span> Foro Interactivo
+                        <span>💬</span> Foro Interactivo
                       </h3>
                       <p className="text-xs text-slate-300 leading-relaxed">
                         Comparte hallazgos marinos, formula preguntas a la comunidad científica y reacciona con 'me gusta' a las investigaciones.
@@ -1833,7 +1974,7 @@ class DatabaseService {
                         </span>
                       </div>
                       <h3 className="text-xl font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
-                        <span> </span> Insignias y Logros
+                        <span>🏆</span> Insignias y Logros
                       </h3>
                       <p className="text-xs text-slate-300 leading-relaxed">
                         Acumula puntos de experiencia (XP) por cada participación, sube de nivel y recibe insignias oficiales de conservación.
@@ -2082,7 +2223,7 @@ class DatabaseService {
 
                   {displayedActivities.length === 0 ? (
                     <div className="ocean-glass-card rounded-3xl p-8 text-center space-y-3 border border-cyan-500/20">
-                      <p className="text-3xl"> </p>
+                      <p className="text-3xl">🏖️</p>
                       <h4 className="text-base font-bold text-white">No hay actividades registradas en {MONTH_NAMES[selectedMonth]} {selectedYear}</h4>
                       <p className="text-xs text-slate-300 max-w-md mx-auto">
                         Puedes usar las flechas del calendario para navegar a otros meses o años (2026 - 2027).
@@ -2128,7 +2269,7 @@ class DatabaseService {
 
                               <div className="p-6 space-y-3">
                                 <span className="text-[11px] text-cyan-400 font-bold block">
-                                   {act.date} •  {act.time}
+                                  📅 {act.date} • 🕒 {act.time}
                                 </span>
                                 <h3 className="text-lg font-black text-white group-hover:text-cyan-300 transition-colors leading-snug">
                                   {act.name}
@@ -2154,7 +2295,7 @@ class DatabaseService {
                                     className="p-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs"
                                     title="Editar actividad"
                                   >
-                                    
+                                    ✏️
                                   </button>
                                 )}
 
@@ -2197,7 +2338,7 @@ class DatabaseService {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-3xl font-black text-white flex items-center gap-2">
-                      <span> </span> Foro Comunitario Submarino
+                      <span>💬</span> Foro Comunitario Submarino
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-300 mt-1">
                       Debates, reportes biológicos y preguntas moderadas bajo la clase <code className="text-cyan-300 bg-cyan-950 px-1 py-0.5 rounded">ForumPost</code>.
@@ -2289,7 +2430,7 @@ class DatabaseService {
                                 }`}
                                 title={post.isPinned ? 'Desfijar anuncio' : 'Fijar como anuncio prioritario'}
                               >
-                                
+                                📌
                               </button>
 
                               <button
@@ -2297,7 +2438,7 @@ class DatabaseService {
                                 className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold"
                                 title="Editar publicación"
                               >
-                                
+                                ✏️
                               </button>
 
                               <button
@@ -2305,7 +2446,7 @@ class DatabaseService {
                                 className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-bold"
                                 title="Eliminar tema"
                               >
-                                
+                                🗑️
                               </button>
                             </div>
                           )}
@@ -2316,7 +2457,7 @@ class DatabaseService {
                       <div className="space-y-2">
                         {post.isPinned && (
                           <div className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                             Anuncio Oficial Fijado
+                            📌 Anuncio Oficial Fijado
                           </div>
                         )}
                         <h3 className="text-lg sm:text-xl font-black text-white">{post.title}</h3>
@@ -2337,7 +2478,7 @@ class DatabaseService {
                           onClick={() => handleToggleLike(post.id)}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0b2545] hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-bold transition-all"
                         >
-                          <span> </span>
+                          <span>💙</span>
                           <span>{post.likes} Me gusta</span>
                         </button>
                         <span className="text-slate-400">{post.comments.length} comentarios</span>
@@ -2359,7 +2500,7 @@ class DatabaseService {
                                   className="text-[10px] text-red-400 hover:text-red-300 p-0.5"
                                   title="Eliminar comentario"
                                 >
-                                  
+                                  🗑️
                                 </button>
                               )}
                             </div>
@@ -2398,7 +2539,7 @@ class DatabaseService {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-3xl font-black text-white flex items-center gap-2">
-                      <span> </span> Insignias y Logros de Conservación
+                      <span>🏆</span> Insignias y Logros de Conservación
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-300 mt-1">
                       Sistema gamificado gobernado por la clase <code className="text-cyan-300 bg-cyan-950 px-1 py-0.5 rounded">Badge</code> con validación encapsulada.
@@ -2410,7 +2551,7 @@ class DatabaseService {
                       onClick={() => setGrantBadgeModalOpen(true)}
                       className="px-4 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase transition-all shadow-lg shadow-amber-500/30 flex items-center gap-1.5 self-start sm:self-auto"
                     >
-                      <span> </span> Otorgar Reconocimiento Oficial
+                      <span>👑</span> Otorgar Reconocimiento Oficial
                     </button>
                   )}
                 </div>
@@ -2477,7 +2618,7 @@ class DatabaseService {
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 bg-slate-900 px-3 py-1 rounded-full">
-                               Bloqueada
+                              🔒 Bloqueada
                             </span>
                           )}
                         </div>
@@ -2625,7 +2766,7 @@ class DatabaseService {
                     </div>
 
                     <p className="text-[11px] text-cyan-300/80">
-                       Tu cuenta se creará con el rol de <strong className="text-white">Voluntario(a)</strong> con 100 XP de bienvenida.
+                      ℹ️ Tu cuenta se creará con el rol de <strong className="text-white">Voluntario(a)</strong> con 100 XP de bienvenida.
                     </p>
 
                     <button
@@ -2672,13 +2813,13 @@ class DatabaseService {
                         }}
                         className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1"
                       >
-                        <span> </span> Editar
+                        <span>✏️</span> Editar
                       </button>
                       <button
                         onClick={() => handleDeleteActivity(selectedActivityModal.id)}
                         className="px-2.5 py-1 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-bold flex items-center gap-1"
                       >
-                        <span> </span> Borrar
+                        <span>🗑️</span> Borrar
                       </button>
                     </div>
                   )}
@@ -2687,10 +2828,10 @@ class DatabaseService {
                 <h3 className="text-xl font-black text-white">{selectedActivityModal.name}</h3>
 
                 <div className="p-3.5 rounded-2xl bg-[#0b2545] text-xs space-y-1.5 text-slate-300">
-                  <p> <strong className="text-white">Fecha:</strong> {selectedActivityModal.date} ({selectedActivityModal.time})</p>
-                  <p> n<strong className="text-white">Ubicación:</strong> {selectedActivityModal.location}</p>
-                  <p> <strong className="text-white">Responsable Científico:</strong> {selectedActivityModal.responsible}</p>
-                  <p> <strong className="text-white">Cupos:</strong> {selectedActivityModal.enrolledCount} inscritos de {selectedActivityModal.totalSpots} ({typeof selectedActivityModal.getAvailableSpots === 'function' ? selectedActivityModal.getAvailableSpots() : Math.max(0, selectedActivityModal.totalSpots - selectedActivityModal.enrolledCount)} disponibles)</p>
+                  <p>📅 <strong className="text-white">Fecha:</strong> {selectedActivityModal.date} ({selectedActivityModal.time})</p>
+                  <p>📍 <strong className="text-white">Ubicación:</strong> {selectedActivityModal.location}</p>
+                  <p>👤 <strong className="text-white">Responsable Científico:</strong> {selectedActivityModal.responsible}</p>
+                  <p>👥 <strong className="text-white">Cupos:</strong> {selectedActivityModal.enrolledCount} inscritos de {selectedActivityModal.totalSpots} ({typeof selectedActivityModal.getAvailableSpots === 'function' ? selectedActivityModal.getAvailableSpots() : Math.max(0, selectedActivityModal.totalSpots - selectedActivityModal.enrolledCount)} disponibles)</p>
                 </div>
 
                 <p className="text-xs text-slate-300 leading-relaxed">{selectedActivityModal.description}</p>
@@ -2746,7 +2887,7 @@ class DatabaseService {
                 </button>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xl"> </span>
+                  <span className="text-xl">💬</span>
                   <h3 className="text-xl font-black text-white">Publicar Nuevo Tema en el Foro</h3>
                 </div>
 
@@ -3107,7 +3248,7 @@ class DatabaseService {
                         <h4 className="text-sm font-bold text-white">{b.name}</h4>
                         <p className="text-xs text-slate-300">{b.description}</p>
                         <div className="text-[10px] text-amber-300 font-medium">
-                          {alreadyHas ? ' El voluntario ya posee esta insignia.' : ' Concede +150 XP y se guardará permanentemente en su cuenta.'}
+                          {alreadyHas ? '⚠️ El voluntario ya posee esta insignia.' : '✨ Concede +150 XP y se guardará permanentemente en su cuenta.'}
                         </div>
                       </div>
 
@@ -3129,7 +3270,7 @@ class DatabaseService {
                               : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-500/20'
                           }`}
                         >
-                           Otorgar Insignia
+                          🎖️ Otorgar Insignia
                         </button>
                       </div>
                     </div>
