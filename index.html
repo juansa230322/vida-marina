@@ -302,7 +302,7 @@ class AdminCoordinator extends User {
   }
 
   getRoleTitle() {
-    return '👑 Admin Coordinadora';
+    return '';
   }
 }
 
@@ -3192,26 +3192,5 @@ class DatabaseService {
                   DatabaseService (POO Singleton Activo)
                 </span>
 
-                {/* BOTÓN RESTABLECER BASE DE DATOS: SOLO VISIBLE EN PERFIL DE ADMINISTRADORA */}
-                {isAdmin && (
-                  <button
-                    onClick={handleResetDatabase}
-                    className="text-[11px] text-amber-400/90 hover:text-red-400 underline flex items-center gap-1 transition-colors"
-                    title="Función exclusiva de Administradora: Restablecer base de datos a valores iniciales de fábrica"
-                  >
-                    <span>⚙️</span>
-                    Restablecer Base de Datos
-                  </button>
-                )}
-              </div>
-            </div>
-          </footer>
-
-        </div>
-      );
-    }
-
-    ReactDOM.render(<App />, document.getElementById('root'));
-  </script>
-</body>
+                
 </html>
