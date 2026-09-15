@@ -1034,17 +1034,18 @@ class DatabaseService {
             return false;
           }
 
-          // Canal Broadcast: entrega el cambio inmediatamente a otros dispositivos.
-          // PostgreSQL Realtime queda como respaldo y para mantener la persistencia.
+          // Usar el mismo canal Broadcast que está suscrito en los demás dispositivos.
+          // Así no se crean canales temporales que puedan competir entre sí.
           try {
-            const syncChannel = vidaMarinaSupabase.channel('vida-marina-forum-sync');
-            await syncChannel.send({
-              type: 'broadcast',
-              event: 'forum_update',
-              payload: { posts: posts.map(p => p.toJSON()), sentAt: Date.now() }
-            });
+            if (this.forumBroadcastChannel) {
+              await this.forumBroadcastChannel.send({
+                type: 'broadcast',
+                event: 'forum_update',
+                payload: { posts: posts.map(p => p.toJSON()), sentAt: Date.now() }
+              });
+            }
           } catch (broadcastError) {
-            console.warn('VIDA MARINA - Broadcast del foro no disponible; Realtime continuará:', broadcastError);
+            console.warn('VIDA MARINA - Broadcast no disponible; la base de datos conserva el cambio:', broadcastError);
           }
 
           console.log('VIDA MARINA - Foro guardado y enviado en tiempo real.');
@@ -1055,21 +1056,17 @@ class DatabaseService {
         }
       },
 
+      forumBroadcastChannel: null,
+
       subscribe(onPosts) {
         if (!vidaMarinaSupabase) return null;
         const channel = vidaMarinaSupabase
           .channel('vida-marina-forum-sync')
-          // Broadcast se recibe normalmente antes que el evento de PostgreSQL.
           .on('broadcast', { event: 'forum_update' }, ({ payload }) => {
             if (payload && Array.isArray(payload.posts)) onPosts(payload.posts);
           })
-          // PostgreSQL Realtime queda como respaldo.
-          .on('postgres_changes', {
-            event: '*', schema: 'public', table: 'vida_marina_forum', filter: 'id=eq.1'
-          }, payload => {
-            if (payload.new && payload.new.posts) onPosts(payload.new.posts);
-          })
           .subscribe(status => console.log('VIDA MARINA - Sincronización rápida del foro:', status));
+        this.forumBroadcastChannel = channel;
         return channel;
       },
 
@@ -1227,31 +1224,29 @@ class DatabaseService {
 
       // Cola de guardado del foro: evita escrituras simultáneas y estados antiguos.
       // La interfaz se actualiza de inmediato y Supabase recibe siempre la versión más reciente.
-      const forumSaveTimerRef = useRef(null);
       const forumSavePendingRef = useRef(null);
       const forumSaveInFlightRef = useRef(false);
 
       const queueForumCloudSave = (posts) => {
         if (!VidaMarinaCloud.isConfigured || !forumCloudReadyRef.current) return;
         forumSavePendingRef.current = posts;
+        if (forumSaveInFlightRef.current) return;
 
-        if (forumSaveTimerRef.current) clearTimeout(forumSaveTimerRef.current);
-        forumSaveTimerRef.current = setTimeout(async () => {
-          forumSaveTimerRef.current = null;
-          if (forumSaveInFlightRef.current) return;
-
+        const flush = async () => {
           const pending = forumSavePendingRef.current;
           forumSavePendingRef.current = null;
-          if (!pending) return;
+          if (!pending || forumSaveInFlightRef.current) return;
 
           forumSaveInFlightRef.current = true;
           try {
             await VidaMarinaCloud.saveForum(pending);
           } finally {
             forumSaveInFlightRef.current = false;
-            if (forumSavePendingRef.current) queueForumCloudSave(forumSavePendingRef.current);
+            if (forumSavePendingRef.current) void flush();
           }
-        }, 30);
+        };
+
+        void flush();
       };
 
       useEffect(() => {
