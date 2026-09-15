@@ -1020,27 +1020,56 @@ class DatabaseService {
       },
 
       async saveForum(posts) {
-        if (!vidaMarinaSupabase) return;
-        const { error } = await vidaMarinaSupabase
-          .from('vida_marina_forum')
-          .upsert({
-            id: 1,
-            posts: posts.map(p => p.toJSON()),
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'id' });
-        if (error) console.error('VIDA MARINA - Error guardando foro:', error);
+        if (!vidaMarinaSupabase) return false;
+        try {
+          const { error } = await vidaMarinaSupabase
+            .from('vida_marina_forum')
+            .upsert({
+              id: 1,
+              posts: posts.map(p => p.toJSON()),
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+          if (error) {
+            console.error('VIDA MARINA - Error guardando foro:', error);
+            return false;
+          }
+
+          // Canal Broadcast: entrega el cambio inmediatamente a otros dispositivos.
+          // PostgreSQL Realtime queda como respaldo y para mantener la persistencia.
+          try {
+            const syncChannel = vidaMarinaSupabase.channel('vida-marina-forum-sync');
+            await syncChannel.send({
+              type: 'broadcast',
+              event: 'forum_update',
+              payload: { posts: posts.map(p => p.toJSON()), sentAt: Date.now() }
+            });
+          } catch (broadcastError) {
+            console.warn('VIDA MARINA - Broadcast del foro no disponible; Realtime continuará:', broadcastError);
+          }
+
+          console.log('VIDA MARINA - Foro guardado y enviado en tiempo real.');
+          return true;
+        } catch (error) {
+          console.error('VIDA MARINA - Excepción guardando foro:', error);
+          return false;
+        }
       },
 
       subscribe(onPosts) {
         if (!vidaMarinaSupabase) return null;
         const channel = vidaMarinaSupabase
           .channel('vida-marina-forum-sync')
+          // Broadcast se recibe normalmente antes que el evento de PostgreSQL.
+          .on('broadcast', { event: 'forum_update' }, ({ payload }) => {
+            if (payload && Array.isArray(payload.posts)) onPosts(payload.posts);
+          })
+          // PostgreSQL Realtime queda como respaldo.
           .on('postgres_changes', {
             event: '*', schema: 'public', table: 'vida_marina_forum', filter: 'id=eq.1'
           }, payload => {
             if (payload.new && payload.new.posts) onPosts(payload.new.posts);
           })
-          .subscribe(status => console.log('VIDA MARINA - Sincronización del foro:', status));
+          .subscribe(status => console.log('VIDA MARINA - Sincronización rápida del foro:', status));
         return channel;
       },
 
@@ -1296,7 +1325,8 @@ class DatabaseService {
         return () => { cancelled = true; };
       }, [currentUserId]);
 
-      // Persistencia local + nube. Foro y usuarios se comparten entre dispositivos.
+      // Persistencia local + nube. Las acciones del foro también guardan directamente
+      // en Supabase; Broadcast acelera la llegada al resto de dispositivos.
       useEffect(() => {
         db.saveUsers(users);
         db.saveCurrentUserId(currentUserId);
@@ -1468,7 +1498,7 @@ class DatabaseService {
       };
 
       // Crear publicación en el foro (Instanciación de ForumPost)
-      const handleCreatePostSubmit = (e) => {
+      const handleCreatePostSubmit = async (e) => {
         e.preventDefault();
         if (!currentUser) {
           setAuthTab('login');
@@ -1496,7 +1526,11 @@ class DatabaseService {
           }
         }
 
-        setForumPosts([newPost, ...forumPosts]);
+        const updatedForumPosts = [newPost, ...forumPosts];
+        setForumPosts(updatedForumPosts);
+        if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
+          await VidaMarinaCloud.saveForum(updatedForumPosts);
+        }
         setUsers([...users]);
         setNewPostTitle('');
         setNewPostContent('');
@@ -1548,7 +1582,7 @@ class DatabaseService {
       };
 
       // Comentar en foro (Invocando método addComment de ForumPost)
-      const handleAddComment = (postId) => {
+      const handleAddComment = async (postId) => {
         if (!currentUser) {
           setAuthTab('login');
           setAuthModalOpen(true);
@@ -1568,31 +1602,47 @@ class DatabaseService {
 
           currentUser.addXP(10);
           setReplyInputs({ ...replyInputs, [postId]: '' });
-          setForumPosts([...forumPosts]);
+          const updatedForumPosts = [...forumPosts];
+          setForumPosts(updatedForumPosts);
+          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
+            await VidaMarinaCloud.saveForum(updatedForumPosts);
+          }
           setUsers([...users]);
         }
       };
 
       // Métodos de Administración en el Foro
-      const handleTogglePinPost = (postId) => {
+      const handleTogglePinPost = async (postId) => {
         const post = forumPosts.find(p => p.id === postId);
         if (post) {
           post.togglePin();
-          setForumPosts([...forumPosts]);
+          const updatedForumPosts = [...forumPosts];
+          setForumPosts(updatedForumPosts);
+          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
+            await VidaMarinaCloud.saveForum(updatedForumPosts);
+          }
         }
       };
 
-      const handleDeletePost = (postId) => {
+      const handleDeletePost = async (postId) => {
         if (confirm('¿Estás seguro de que deseas eliminar permanentemente este tema del foro?')) {
-          setForumPosts(forumPosts.filter(p => p.id !== postId));
+          const updatedForumPosts = forumPosts.filter(p => p.id !== postId);
+          setForumPosts(updatedForumPosts);
+          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
+            await VidaMarinaCloud.saveForum(updatedForumPosts);
+          }
         }
       };
 
-      const handleDeleteComment = (postId, commentIndex) => {
+      const handleDeleteComment = async (postId, commentIndex) => {
         const post = forumPosts.find(p => p.id === postId);
         if (post) {
           post.removeComment(commentIndex);
-          setForumPosts([...forumPosts]);
+          const updatedForumPosts = [...forumPosts];
+          setForumPosts(updatedForumPosts);
+          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
+            await VidaMarinaCloud.saveForum(updatedForumPosts);
+          }
         }
       };
 
@@ -1605,7 +1655,7 @@ class DatabaseService {
         });
       };
 
-      const handleSaveEditPost = (e) => {
+      const handleSaveEditPost = async (e) => {
         e.preventDefault();
         if (!editingPost) return;
 
@@ -1616,7 +1666,11 @@ class DatabaseService {
             category: editingPost.category,
             content: editingPost.content.trim()
           });
-          setForumPosts([...forumPosts]);
+          const updatedForumPosts = [...forumPosts];
+          setForumPosts(updatedForumPosts);
+          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
+            await VidaMarinaCloud.saveForum(updatedForumPosts);
+          }
         }
         setEditingPost(null);
       };
