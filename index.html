@@ -100,6 +100,9 @@
       animation: float 4s ease-in-out infinite;
     }
   </style>
+
+
+
 </head>
 <body class="selection:bg-cyan-500 selection:text-slate-950">
   <div id="root"></div>
@@ -304,7 +307,7 @@ class AdminCoordinator extends User {
   }
 
   getRoleTitle() {
-    return '👑 Coordinadora';
+    return ' Coordinadora';
   }
 }
 
@@ -886,7 +889,7 @@ class DatabaseService {
     const seedBadgesData = [
       {
         id: 'badge-1',
-        icon: '🐚',
+        icon: '',
         name: 'Primer Voluntariado',
         description: 'Reconocimiento otorgado por completar tu primera inscripción y jornada ecológica.',
         requirement: 'Inscríbete y asiste a 1 actividad comunitaria',
@@ -894,14 +897,14 @@ class DatabaseService {
       },
       {
         id: 'badge-2',
-        icon: '🐠',
+        icon: '',
         name: 'Voluntario del Océano',
         description: 'Constancia activa en jornadas y protección de costas marinas.',
         requirement: 'Participa en 5 actividades registradas'
       },
       {
         id: 'badge-3',
-        icon: '🐢',
+        icon: '',
         name: 'Protector de Especies',
         description: 'Participación en talleres o jornadas enfocadas en fauna marina vulnerable.',
         requirement: 'Participa en talleres de tortugas o fauna protegida',
@@ -909,35 +912,35 @@ class DatabaseService {
       },
       {
         id: 'badge-4',
-        icon: '🌊',
+        icon: '',
         name: 'Guardián del Océano',
         description: 'Máximo galardón por liderazgo continuo en limpieza y restauración de playas.',
         requirement: 'Completa 10 actividades de voluntariado'
       },
       {
         id: 'badge-5',
-        icon: '🪸',
+        icon: '',
         name: 'Protector de Ecosistemas',
         description: 'Compromiso directo en siembra de corales o reforestación de manglares.',
         requirement: 'Participa en actividades de siembra o restauración'
       },
       {
         id: 'badge-6',
-        icon: '🐋',
+        icon: '',
         name: 'Embajador Marino',
         description: 'El mayor honor de la plataforma: combina debate comunitario y acción en terreno.',
         requirement: 'Alcanza nivel 4+, 5 actividades y 10 aportes en el foro'
       },
       {
         id: 'badge-7',
-        icon: '💬',
+        icon: '',
         name: 'Voz Comunitaria',
         description: 'Reconocimiento a la participación constructiva y debate en el foro.',
         requirement: 'Publica temas útiles y responde preguntas de otros miembros'
       },
       {
         id: 'badge-8',
-        icon: '📅',
+        icon: '',
         name: 'Planificador Activo',
         description: 'Organización ejemplar en la agenda de conservación oceánica.',
         requirement: 'Inscríbete a 3 o más actividades del calendario'
@@ -953,7 +956,7 @@ class DatabaseService {
         category: 'Conservación',
         date: 'Hace 2 días',
         title: '¿Qué hábitos cotidianos recomiendan para reducir el plástico que llega a los mares?',
-        content: 'Hola a todos los voluntarios 👋. Tras nuestra reciente jornada de limpieza en Playa Coral notamos una gran presencia de microplásticos en la arena. ¿Cuáles consideran que son los hábitos más sencillos pero contundentes para evitar que estos desechos lleguen a los ríos y al mar?',
+        content: 'Hola a todos los voluntarios . Tras nuestra reciente jornada de limpieza en Playa Coral notamos una gran presencia de microplásticos en la arena. ¿Cuáles consideran que son los hábitos más sencillos pero contundentes para evitar que estos desechos lleguen a los ríos y al mar?',
         likes: 19,
         isPinned: false,
         comments: [
@@ -1734,7 +1737,7 @@ class DatabaseService {
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  <span>🏠</span>
+                  <span></span>
                   <span className="hidden sm:inline">Inicio</span>
                 </button>
 
@@ -1746,7 +1749,7 @@ class DatabaseService {
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  <span>📅</span>
+                  <span></span>
                   <span>Calendario</span>
                 </button>
 
@@ -1758,7 +1761,7 @@ class DatabaseService {
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  <span>💬</span>
+                  <span></span>
                   <span>Foro</span>
                 </button>
 
@@ -1770,7 +1773,7 @@ class DatabaseService {
                       : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  <span>🏆</span>
+                  <span></span>
                   <span>Insignias</span>
                 </button>
               </nav>
@@ -1781,7 +1784,7 @@ class DatabaseService {
                   <div className="flex items-center gap-2">
                     {isAdmin && (
                       <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black shadow-sm">
-                        <span>👑</span>
+                        <span></span>
                         <span className="hidden md:inline">{currentUser.getRoleTitle()}</span>
                       </div>
                     )}
@@ -1815,7 +1818,7 @@ class DatabaseService {
                       className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-300 border border-slate-700/60 hover:border-red-500/30 transition-all text-xs"
                       title="Cerrar Sesión"
                     >
-                      🚪
+                      
                     </button>
                   </div>
                 ) : (
@@ -1863,7 +1866,7 @@ class DatabaseService {
                     </div>
 
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 backdrop-blur">
-                      <span>🪸</span> Plataforma de Conservación Marina 
+                      <span></span> Plataforma de Conservación Marina 
                     </div>
 
                     <h1 className="text-4xl sm:text-6xl font-black ocean-gradient-text tracking-tight drop-shadow-sm">
@@ -1883,13 +1886,13 @@ class DatabaseService {
                         onClick={() => setCurrentView('calendar')}
                         className="px-6 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-cyan-500/30 transform hover:-translate-y-0.5 flex items-center gap-2"
                       >
-                        <span>📅</span> Ver Calendario 2026 - 2027
+                        <span></span> Ver Calendario 2026 - 2027
                       </button>
                       <button
                         onClick={() => setCurrentView('forum')}
                         className="px-6 py-3 rounded-2xl bg-[#0b2545]/80 hover:bg-[#0b2545] border border-cyan-400/40 text-cyan-300 font-bold text-sm transition-all backdrop-blur transform hover:-translate-y-0.5 flex items-center gap-2"
                       >
-                        <span>💬</span> Debate en el Foro
+                        <span></span> Debate en el Foro
                       </button>
                     </div>
                   </div>
@@ -1916,7 +1919,7 @@ class DatabaseService {
                         </span>
                       </div>
                       <h3 className="text-xl font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
-                        <span>📅</span> Calendario 2026 - 2027
+                        <span></span> Calendario 2026 - 2027
                       </h3>
                       <p className="text-xs text-slate-300 leading-relaxed">
                         Explora la agenda completa de los años 2026 y 2027 con cuadrícula interactiva de 7 días y cálculo de cupos en vivo.
@@ -1945,7 +1948,7 @@ class DatabaseService {
                         </span>
                       </div>
                       <h3 className="text-xl font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
-                        <span>💬</span> Foro Interactivo
+                        <span></span> Foro Interactivo
                       </h3>
                       <p className="text-xs text-slate-300 leading-relaxed">
                         Comparte hallazgos marinos, formula preguntas a la comunidad científica y reacciona con 'me gusta' a las investigaciones.
@@ -1974,7 +1977,7 @@ class DatabaseService {
                         </span>
                       </div>
                       <h3 className="text-xl font-black text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
-                        <span>🏆</span> Insignias y Logros
+                        <span></span> Insignias y Logros
                       </h3>
                       <p className="text-xs text-slate-300 leading-relaxed">
                         Acumula puntos de experiencia (XP) por cada participación, sube de nivel y recibe insignias oficiales de conservación.
@@ -1991,7 +1994,7 @@ class DatabaseService {
                 <div className="p-8 rounded-3xl bg-gradient-to-r from-[#07192f] to-[#0b2545] border border-cyan-500/30 flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="space-y-2 text-center md:text-left">
                     <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                      🌿 Impacto Ecológico Colectivo
+                       Impacto Ecológico Colectivo
                     </span>
                     <h3 className="text-2xl font-black text-white">Resultados de Nuestra Comunidad Marina</h3>
                     <p className="text-xs text-slate-300 max-w-lg">
@@ -2025,7 +2028,7 @@ class DatabaseService {
                 <div className="relative overflow-hidden p-6 sm:p-8 rounded-[2rem] bg-gradient-to-r from-[#0b2545] via-[#07192f] to-[#041224] border border-cyan-500/30 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="relative z-10">
                     <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                      🗓️ Agenda Anual 2026 - 2027
+                      ️ Agenda Anual 2026 - 2027
                     </span>
                     <h2 className="text-2xl sm:text-3xl font-black text-white mt-2">
                       Calendario de <span className="ocean-gradient-text">Actividades</span>
@@ -2041,7 +2044,7 @@ class DatabaseService {
                         onClick={handleOpenCreateActivity}
                         className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md hover:scale-105 transition-all flex items-center gap-1.5"
                       >
-                        <span>➕</span> Nueva Actividad (Admin)
+                        <span></span> Nueva Actividad (Admin)
                       </button>
                     )}
 
@@ -2199,7 +2202,7 @@ class DatabaseService {
                                   }`}
                                   title={`${act.name} (${act.time})`}
                                 >
-                                  {isEnrolled ? '✓ ' : ''}{act.name}
+                                  {isEnrolled ? ' ' : ''}{act.name}
                                 </button>
                               );
                             })}
@@ -2214,7 +2217,7 @@ class DatabaseService {
                 <div className="pt-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-black text-white flex items-center gap-2">
-                      <span>🌊</span> Convocatorias en {MONTH_NAMES[selectedMonth]} {selectedYear} ({displayedActivities.length})
+                      <span></span> Convocatorias en {MONTH_NAMES[selectedMonth]} {selectedYear} ({displayedActivities.length})
                     </h3>
                     <span className="text-xs text-slate-400">
                       Total registradas en el sistema: {activities.length}
@@ -2223,7 +2226,7 @@ class DatabaseService {
 
                   {displayedActivities.length === 0 ? (
                     <div className="ocean-glass-card rounded-3xl p-8 text-center space-y-3 border border-cyan-500/20">
-                      <p className="text-3xl">🏖️</p>
+                      <p className="text-3xl">️</p>
                       <h4 className="text-base font-bold text-white">No hay actividades registradas en {MONTH_NAMES[selectedMonth]} {selectedYear}</h4>
                       <p className="text-xs text-slate-300 max-w-md mx-auto">
                         Puedes usar las flechas del calendario para navegar a otros meses o años (2026 - 2027).
@@ -2269,7 +2272,7 @@ class DatabaseService {
 
                               <div className="p-6 space-y-3">
                                 <span className="text-[11px] text-cyan-400 font-bold block">
-                                  📅 {act.date} • 🕒 {act.time}
+                                   {act.date} •  {act.time}
                                 </span>
                                 <h3 className="text-lg font-black text-white group-hover:text-cyan-300 transition-colors leading-snug">
                                   {act.name}
@@ -2295,7 +2298,7 @@ class DatabaseService {
                                     className="p-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs"
                                     title="Editar actividad"
                                   >
-                                    ✏️
+                                    ️
                                   </button>
                                 )}
 
@@ -2304,7 +2307,7 @@ class DatabaseService {
                                     onClick={() => handleCancelEnrollActivity(act.id)}
                                     className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-red-500/20 border border-emerald-500/40 hover:border-red-500/40 text-emerald-300 hover:text-red-300 text-xs font-bold transition-all"
                                   >
-                                    ✓ Inscrito (Cancelar)
+                                     Inscrito (Cancelar)
                                   </button>
                                 ) : (
                                   <button
@@ -2338,7 +2341,7 @@ class DatabaseService {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-3xl font-black text-white flex items-center gap-2">
-                      <span>💬</span> Foro Comunitario Submarino
+                      <span></span> Foro Comunitario Submarino
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-300 mt-1">
                       Debates, reportes biológicos y preguntas moderadas bajo la clase <code className="text-cyan-300 bg-cyan-950 px-1 py-0.5 rounded">ForumPost</code>.
@@ -2352,7 +2355,7 @@ class DatabaseService {
                     }}
                     className="px-4 py-2.5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase transition-all shadow-lg shadow-cyan-500/30 flex items-center gap-1.5 self-start sm:self-auto"
                   >
-                    <span>➕</span> Nuevo Tema
+                    <span></span> Nuevo Tema
                   </button>
                 </div>
 
@@ -2430,7 +2433,7 @@ class DatabaseService {
                                 }`}
                                 title={post.isPinned ? 'Desfijar anuncio' : 'Fijar como anuncio prioritario'}
                               >
-                                📌
+                                
                               </button>
 
                               <button
@@ -2438,7 +2441,7 @@ class DatabaseService {
                                 className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold"
                                 title="Editar publicación"
                               >
-                                ✏️
+                                ️
                               </button>
 
                               <button
@@ -2446,7 +2449,7 @@ class DatabaseService {
                                 className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-bold"
                                 title="Eliminar tema"
                               >
-                                🗑️
+                                ️
                               </button>
                             </div>
                           )}
@@ -2457,7 +2460,7 @@ class DatabaseService {
                       <div className="space-y-2">
                         {post.isPinned && (
                           <div className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                            📌 Anuncio Oficial Fijado
+                             Anuncio Oficial Fijado
                           </div>
                         )}
                         <h3 className="text-lg sm:text-xl font-black text-white">{post.title}</h3>
@@ -2478,7 +2481,7 @@ class DatabaseService {
                           onClick={() => handleToggleLike(post.id)}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0b2545] hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-bold transition-all"
                         >
-                          <span>💙</span>
+                          <span></span>
                           <span>{post.likes} Me gusta</span>
                         </button>
                         <span className="text-slate-400">{post.comments.length} comentarios</span>
@@ -2500,7 +2503,7 @@ class DatabaseService {
                                   className="text-[10px] text-red-400 hover:text-red-300 p-0.5"
                                   title="Eliminar comentario"
                                 >
-                                  🗑️
+                                  ️
                                 </button>
                               )}
                             </div>
@@ -2539,7 +2542,7 @@ class DatabaseService {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-3xl font-black text-white flex items-center gap-2">
-                      <span>🏆</span> Insignias y Logros de Conservación
+                      <span></span> Insignias y Logros de Conservación
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-300 mt-1">
                       Sistema gamificado gobernado por la clase <code className="text-cyan-300 bg-cyan-950 px-1 py-0.5 rounded">Badge</code> con validación encapsulada.
@@ -2551,7 +2554,7 @@ class DatabaseService {
                       onClick={() => setGrantBadgeModalOpen(true)}
                       className="px-4 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase transition-all shadow-lg shadow-amber-500/30 flex items-center gap-1.5 self-start sm:self-auto"
                     >
-                      <span>👑</span> Otorgar Reconocimiento Oficial
+                      <span></span> Otorgar Reconocimiento Oficial
                     </button>
                   )}
                 </div>
@@ -2614,11 +2617,11 @@ class DatabaseService {
                         <div className="pt-2">
                           {isEarned ? (
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-3 py-1 rounded-full">
-                              ✓ Obtenida
+                               Obtenida
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 bg-slate-900 px-3 py-1 rounded-full">
-                              🔒 Bloqueada
+                               Bloqueada
                             </span>
                           )}
                         </div>
@@ -2643,7 +2646,7 @@ class DatabaseService {
                   onClick={() => { setAuthModalOpen(false); setAuthError(''); }}
                   className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
                 >
-                  ✕
+                  
                 </button>
 
                 <div className="text-center space-y-1">
@@ -2656,7 +2659,7 @@ class DatabaseService {
 
                 {authError && (
                   <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-200 text-xs font-semibold">
-                    ⚠️ {authError}
+                    ️ {authError}
                   </div>
                 )}
 
@@ -2790,7 +2793,7 @@ class DatabaseService {
                   onClick={() => setSelectedActivityModal(null)}
                   className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
                 >
-                  ✕
+                  
                 </button>
 
                 {selectedActivityModal.image && (
@@ -2813,13 +2816,13 @@ class DatabaseService {
                         }}
                         className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1"
                       >
-                        <span>✏️</span> Editar
+                        <span>️</span> Editar
                       </button>
                       <button
                         onClick={() => handleDeleteActivity(selectedActivityModal.id)}
                         className="px-2.5 py-1 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-bold flex items-center gap-1"
                       >
-                        <span>🗑️</span> Borrar
+                        <span>️</span> Borrar
                       </button>
                     </div>
                   )}
@@ -2828,10 +2831,10 @@ class DatabaseService {
                 <h3 className="text-xl font-black text-white">{selectedActivityModal.name}</h3>
 
                 <div className="p-3.5 rounded-2xl bg-[#0b2545] text-xs space-y-1.5 text-slate-300">
-                  <p>📅 <strong className="text-white">Fecha:</strong> {selectedActivityModal.date} ({selectedActivityModal.time})</p>
-                  <p>📍 <strong className="text-white">Ubicación:</strong> {selectedActivityModal.location}</p>
-                  <p>👤 <strong className="text-white">Responsable Científico:</strong> {selectedActivityModal.responsible}</p>
-                  <p>👥 <strong className="text-white">Cupos:</strong> {selectedActivityModal.enrolledCount} inscritos de {selectedActivityModal.totalSpots} ({typeof selectedActivityModal.getAvailableSpots === 'function' ? selectedActivityModal.getAvailableSpots() : Math.max(0, selectedActivityModal.totalSpots - selectedActivityModal.enrolledCount)} disponibles)</p>
+                  <p> <strong className="text-white">Fecha:</strong> {selectedActivityModal.date} ({selectedActivityModal.time})</p>
+                  <p> <strong className="text-white">Ubicación:</strong> {selectedActivityModal.location}</p>
+                  <p> <strong className="text-white">Responsable Científico:</strong> {selectedActivityModal.responsible}</p>
+                  <p> <strong className="text-white">Cupos:</strong> {selectedActivityModal.enrolledCount} inscritos de {selectedActivityModal.totalSpots} ({typeof selectedActivityModal.getAvailableSpots === 'function' ? selectedActivityModal.getAvailableSpots() : Math.max(0, selectedActivityModal.totalSpots - selectedActivityModal.enrolledCount)} disponibles)</p>
                 </div>
 
                 <p className="text-xs text-slate-300 leading-relaxed">{selectedActivityModal.description}</p>
@@ -2883,11 +2886,11 @@ class DatabaseService {
                   onClick={() => setNewPostModalOpen(false)}
                   className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
                 >
-                  ✕
+                  
                 </button>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">💬</span>
+                  <span className="text-xl"></span>
                   <h3 className="text-xl font-black text-white">Publicar Nuevo Tema en el Foro</h3>
                 </div>
 
@@ -2948,11 +2951,11 @@ class DatabaseService {
                   onClick={() => setEditingPost(null)}
                   className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 text-lg"
                 >
-                  ✕
+                  
                 </button>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">✏️</span>
+                  <span className="text-xl">️</span>
                   <h3 className="text-xl font-black text-white">Editar Publicación (Admin)</h3>
                 </div>
 
@@ -3020,11 +3023,11 @@ class DatabaseService {
                   onClick={() => setActivityModalMode('view')}
                   className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 text-lg"
                 >
-                  ✕
+                  
                 </button>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">{activityModalMode === 'create' ? '➕' : '✏️'}</span>
+                  <span className="text-xl">{activityModalMode === 'create' ? '' : '️'}</span>
                   <h3 className="text-xl font-black text-white">
                     {activityModalMode === 'create' ? 'Nueva Actividad de Conservación' : 'Editar Actividad del Calendario'}
                   </h3>
@@ -3173,11 +3176,11 @@ class DatabaseService {
                   onClick={() => setGrantBadgeModalOpen(false)}
                   className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 text-lg"
                 >
-                  ✕
+                  
                 </button>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">👑</span>
+                  <span className="text-2xl"></span>
                   <h3 className="text-xl font-black text-white">Otorgar Reconocimiento Oficial</h3>
                 </div>
                 <p className="text-xs text-slate-300">
@@ -3248,7 +3251,7 @@ class DatabaseService {
                         <h4 className="text-sm font-bold text-white">{b.name}</h4>
                         <p className="text-xs text-slate-300">{b.description}</p>
                         <div className="text-[10px] text-amber-300 font-medium">
-                          {alreadyHas ? '⚠️ El voluntario ya posee esta insignia.' : '✨ Concede +150 XP y se guardará permanentemente en su cuenta.'}
+                          {alreadyHas ? '️ El voluntario ya posee esta insignia.' : ' Concede +150 XP y se guardará permanentemente en su cuenta.'}
                         </div>
                       </div>
 
@@ -3270,7 +3273,7 @@ class DatabaseService {
                               : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-amber-500/20'
                           }`}
                         >
-                          🎖️ Otorgar Insignia
+                          ️ Otorgar Insignia
                         </button>
                       </div>
                     </div>
