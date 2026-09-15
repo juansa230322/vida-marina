@@ -1059,7 +1059,7 @@ class DatabaseService {
       },
 
       async saveUsers(users) {
-        if (!vidaMarinaSupabase) return;
+        if (!vidaMarinaSupabase) return true;
         const { error } = await vidaMarinaSupabase
           .from('vida_marina_users')
           .upsert({
@@ -1067,7 +1067,11 @@ class DatabaseService {
             users: users.map(u => u.toJSON()),
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
-        if (error) console.error('VIDA MARINA - Error guardando usuarios:', error);
+        if (error) {
+          console.error('VIDA MARINA - Error guardando usuarios:', error);
+          return false;
+        }
+        return true;
       },
 
       subscribeUsers(onUsers) {
@@ -1768,14 +1772,29 @@ class DatabaseService {
           return;
         }
 
-        const emailExists = users.some(u => u.email.toLowerCase() === regEmail.trim().toLowerCase());
+        // IMPORTANTE: al registrar desde otro dispositivo, no usamos solamente el estado
+        // local del navegador. Primero consultamos Supabase para obtener la lista mas reciente.
+        const normalizedEmail = regEmail.trim().toLowerCase();
+        let latestUsers = [...users];
+
+        if (VidaMarinaCloud.isConfigured) {
+          const cloudUsers = await VidaMarinaCloud.loadUsers();
+          if (Array.isArray(cloudUsers)) {
+            latestUsers = cloudUsers.map(u => db.hydrateUser(u));
+          }
+        }
+
+        const emailExists = latestUsers.some(u =>
+          String(u.email || '').trim().toLowerCase() === normalizedEmail
+        );
+
         if (emailExists) {
-          setAuthError('Ya existe una cuenta registrada con este correo.');
+          setAuthError('Ya existe una cuenta registrada con este correo. Prueba con otro correo.');
           return;
         }
 
         const newUser = new Volunteer({
-          id: `user-${Date.now()}`,
+          id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           name: regName.trim(),
           email: regEmail.trim(),
           password: regPassword.trim(),
@@ -1785,11 +1804,19 @@ class DatabaseService {
           xp: 100
         });
 
-        const updatedUsers = [newUser, ...users];
-        setUsers(updatedUsers);
+        const updatedUsers = [newUser, ...latestUsers];
+
+        // Primero guardamos en la nube. Si Supabase falla, NO iniciamos la sesion
+        // para evitar que el usuario aparezca solo en el celular.
         if (VidaMarinaCloud.isConfigured) {
-          await VidaMarinaCloud.saveUsers(updatedUsers);
+          const saved = await VidaMarinaCloud.saveUsers(updatedUsers);
+          if (!saved) {
+            setAuthError('No se pudo guardar la cuenta en Supabase. Revisa tu conexion e intenta nuevamente.');
+            return;
+          }
         }
+
+        setUsers(updatedUsers);
         setCurrentUserId(newUser.id);
         setAuthModalOpen(false);
         setRegName('');
@@ -3534,7 +3561,7 @@ class DatabaseService {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3"> 
+              <div className="flex items-center gap-3">
               </div>
             </div>
           </footer>
