@@ -520,8 +520,8 @@ class ForumPost {
     return false;
   }
 
-  toggleLike() {
-    this.likes += 1;
+  toggleLike(increment = 1) {
+    this.likes = Math.max(0, this.likes + Number(increment || 0));
     return this.likes;
   }
 
@@ -1000,29 +1000,27 @@ class DatabaseService {
       ? window.supabase.createClient(VIDA_MARINA_SUPABASE_URL, VIDA_MARINA_SUPABASE_KEY)
       : null;
 
+    // NOTA: este proyecto académico mantiene las credenciales en la tabla para conservar
+    // el login personalizado existente. Para producción se recomienda Supabase Auth.
     const VidaMarinaCloud = {
       isConfigured: vidaMarinaSupabaseConfigured,
 
       async loadForum() {
         if (!vidaMarinaSupabase) return null;
-
         const { data, error } = await vidaMarinaSupabase
           .from('vida_marina_forum')
           .select('posts')
           .eq('id', 1)
           .maybeSingle();
-
         if (error) {
           console.error('VIDA MARINA - Error cargando foro:', error);
           return null;
         }
-
         return data ? data.posts : null;
       },
 
       async saveForum(posts) {
         if (!vidaMarinaSupabase) return;
-
         const { error } = await vidaMarinaSupabase
           .from('vida_marina_forum')
           .upsert({
@@ -1030,42 +1028,144 @@ class DatabaseService {
             posts: posts.map(p => p.toJSON()),
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
-
-        if (error) {
-          console.error('VIDA MARINA - Error guardando foro:', error);
-        }
+        if (error) console.error('VIDA MARINA - Error guardando foro:', error);
       },
 
       subscribe(onPosts) {
         if (!vidaMarinaSupabase) return null;
-
         const channel = vidaMarinaSupabase
           .channel('vida-marina-forum-sync')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'vida_marina_forum',
-              filter: 'id=eq.1'
-            },
-            payload => {
-              if (payload.new && payload.new.posts) {
-                onPosts(payload.new.posts);
-              }
-            }
-          )
-          .subscribe(status => {
-            console.log('VIDA MARINA - Sincronización del foro:', status);
-          });
+          .on('postgres_changes', {
+            event: '*', schema: 'public', table: 'vida_marina_forum', filter: 'id=eq.1'
+          }, payload => {
+            if (payload.new && payload.new.posts) onPosts(payload.new.posts);
+          })
+          .subscribe(status => console.log('VIDA MARINA - Sincronización del foro:', status));
+        return channel;
+      },
 
+      async loadUsers() {
+        if (!vidaMarinaSupabase) return null;
+        const { data, error } = await vidaMarinaSupabase
+          .from('vida_marina_users')
+          .select('users')
+          .eq('id', 1)
+          .maybeSingle();
+        if (error) {
+          console.error('VIDA MARINA - Error cargando usuarios:', error);
+          return null;
+        }
+        return data ? data.users : null;
+      },
+
+      async saveUsers(users) {
+        if (!vidaMarinaSupabase) return;
+        const { error } = await vidaMarinaSupabase
+          .from('vida_marina_users')
+          .upsert({
+            id: 1,
+            users: users.map(u => u.toJSON()),
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+        if (error) console.error('VIDA MARINA - Error guardando usuarios:', error);
+      },
+
+      subscribeUsers(onUsers) {
+        if (!vidaMarinaSupabase) return null;
+        const channel = vidaMarinaSupabase
+          .channel('vida-marina-users-sync')
+          .on('postgres_changes', {
+            event: '*', schema: 'public', table: 'vida_marina_users', filter: 'id=eq.1'
+          }, payload => {
+            if (payload.new && payload.new.users) onUsers(payload.new.users);
+          })
+          .subscribe(status => console.log('VIDA MARINA - Sincronización de usuarios:', status));
+        return channel;
+      },
+
+      async loadLikes(userId) {
+        if (!vidaMarinaSupabase || !userId) return [];
+        const { data, error } = await vidaMarinaSupabase
+          .from('vida_marina_likes')
+          .select('post_id')
+          .eq('user_id', userId);
+        if (error) {
+          console.error('VIDA MARINA - Error cargando likes:', error);
+          return [];
+        }
+        return (data || []).map(row => String(row.post_id));
+      },
+
+      async loadLikeCounts() {
+        if (!vidaMarinaSupabase) return {};
+        const { data, error } = await vidaMarinaSupabase
+          .from('vida_marina_likes')
+          .select('post_id');
+        if (error) {
+          console.error('VIDA MARINA - Error cargando conteos de likes:', error);
+          return {};
+        }
+        const counts = {};
+        (data || []).forEach(row => {
+          const id = String(row.post_id);
+          counts[id] = (counts[id] || 0) + 1;
+        });
+        return counts;
+      },
+
+      async toggleLike(userId, postId) {
+        if (!vidaMarinaSupabase || !userId || !postId) return null;
+        const uid = String(userId);
+        const pid = String(postId);
+        const { data: existing, error: findError } = await vidaMarinaSupabase
+          .from('vida_marina_likes')
+          .select('user_id, post_id')
+          .eq('user_id', uid)
+          .eq('post_id', pid)
+          .maybeSingle();
+        if (findError) {
+          console.error('VIDA MARINA - Error verificando like:', findError);
+          return null;
+        }
+
+        if (existing) {
+          const { error } = await vidaMarinaSupabase
+            .from('vida_marina_likes')
+            .delete()
+            .eq('user_id', uid)
+            .eq('post_id', pid);
+          if (error) {
+            console.error('VIDA MARINA - Error quitando like:', error);
+            return null;
+          }
+          return false;
+        }
+
+        const { error } = await vidaMarinaSupabase
+          .from('vida_marina_likes')
+          .insert({ user_id: uid, post_id: pid });
+        if (error) {
+          // Si otro clic concurrente ya creó el registro, se mantiene un solo like.
+          if (error.code === '23505') return true;
+          console.error('VIDA MARINA - Error agregando like:', error);
+          return null;
+        }
+        return true;
+      },
+
+      subscribeLikes(onChange) {
+        if (!vidaMarinaSupabase) return null;
+        const channel = vidaMarinaSupabase
+          .channel('vida-marina-likes-sync')
+          .on('postgres_changes', {
+            event: '*', schema: 'public', table: 'vida_marina_likes'
+          }, () => onChange())
+          .subscribe(status => console.log('VIDA MARINA - Sincronización de likes:', status));
         return channel;
       },
 
       async unsubscribe(channel) {
-        if (channel && vidaMarinaSupabase) {
-          await vidaMarinaSupabase.removeChannel(channel);
-        }
+        if (channel && vidaMarinaSupabase) await vidaMarinaSupabase.removeChannel(channel);
       }
     };
 
@@ -1082,60 +1182,117 @@ class DatabaseService {
       const [activities, setActivities] = useState(() => db.loadActivities(seedActivitiesData));
       const [badges, setBadges] = useState(() => db.loadBadges(seedBadgesData));
       const [forumPosts, setForumPosts] = useState(() => db.loadForum(seedForumData));
+      const [likedPostIds, setLikedPostIds] = useState(() => new Set());
 
       const [currentView, setCurrentView] = useState('home');
 
       // Sincronización inicial del foro con Supabase + actualizaciones en tiempo real.
       const forumCloudReadyRef = useRef(false);
       const forumCloudApplyingRef = useRef(false);
+      const usersCloudReadyRef = useRef(false);
+      const usersCloudApplyingRef = useRef(false);
 
       useEffect(() => {
         let cancelled = false;
-        let channel = null;
+        let forumChannel = null;
+        let usersChannel = null;
+        let likesChannel = null;
 
-        const startCloudForum = async () => {
+        const applyLikeCounts = async () => {
+          if (!VidaMarinaCloud.isConfigured || cancelled) return;
+          const counts = await VidaMarinaCloud.loadLikeCounts();
+          if (cancelled) return;
+          setForumPosts(current => current.map(post => {
+            const count = counts[String(post.id)] || 0;
+            if (post.likes === count) return post;
+            const copy = db.hydratePost(post.toJSON());
+            copy.likes = count;
+            return copy;
+          }));
+        };
+
+        const startCloudData = async () => {
           if (!VidaMarinaCloud.isConfigured) {
             forumCloudReadyRef.current = true;
+            usersCloudReadyRef.current = true;
             return;
           }
 
-          const cloudPosts = await VidaMarinaCloud.loadForum();
+          const [cloudPosts, cloudUsers] = await Promise.all([
+            VidaMarinaCloud.loadForum(),
+            VidaMarinaCloud.loadUsers()
+          ]);
 
           if (cancelled) return;
 
           if (Array.isArray(cloudPosts)) {
             forumCloudApplyingRef.current = true;
             setForumPosts(cloudPosts.map(p => db.hydratePost(p)));
-            setTimeout(() => {
-              forumCloudApplyingRef.current = false;
-            }, 0);
+            setTimeout(() => { forumCloudApplyingRef.current = false; }, 0);
           } else {
-            // Primera ejecución: sube los datos iniciales del foro a la nube.
             await VidaMarinaCloud.saveForum(forumPosts);
           }
-
           forumCloudReadyRef.current = true;
 
-          channel = VidaMarinaCloud.subscribe(cloudPostsFromRealtime => {
+          if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+            usersCloudApplyingRef.current = true;
+            setUsers(cloudUsers.map(u => db.hydrateUser(u)));
+            setTimeout(() => { usersCloudApplyingRef.current = false; }, 0);
+          } else {
+            await VidaMarinaCloud.saveUsers(users);
+          }
+          usersCloudReadyRef.current = true;
+
+          // Carga los likes existentes y deja el contador del foro basado en la tabla de likes.
+          const initialLikedIds = currentUserId ? await VidaMarinaCloud.loadLikes(currentUserId) : [];
+          if (!cancelled) {
+            setLikedPostIds(new Set(initialLikedIds));
+            await applyLikeCounts();
+          }
+
+          forumChannel = VidaMarinaCloud.subscribe(cloudPostsFromRealtime => {
             if (cancelled) return;
             forumCloudApplyingRef.current = true;
             setForumPosts(cloudPostsFromRealtime.map(p => db.hydratePost(p)));
-            setTimeout(() => {
-              forumCloudApplyingRef.current = false;
-            }, 0);
+            setTimeout(() => { forumCloudApplyingRef.current = false; }, 0);
           });
+
+          usersChannel = VidaMarinaCloud.subscribeUsers(cloudUsersFromRealtime => {
+            if (cancelled) return;
+            usersCloudApplyingRef.current = true;
+            setUsers(cloudUsersFromRealtime.map(u => db.hydrateUser(u)));
+            setTimeout(() => { usersCloudApplyingRef.current = false; }, 0);
+          });
+
+          likesChannel = VidaMarinaCloud.subscribeLikes(applyLikeCounts);
         };
 
-        startCloudForum();
+        startCloudData();
 
         return () => {
           cancelled = true;
-          VidaMarinaCloud.unsubscribe(channel);
+          VidaMarinaCloud.unsubscribe(forumChannel);
+          VidaMarinaCloud.unsubscribe(usersChannel);
+          VidaMarinaCloud.unsubscribe(likesChannel);
         };
       }, [db]);
 
-      // Persistencia local + nube. Usuarios, actividades y badges siguen locales;
-      // el FORO se guarda además en Supabase para compartirlo entre dispositivos.
+      // Cuando cambia la cuenta activa, carga sus likes desde Supabase.
+      useEffect(() => {
+        let cancelled = false;
+        const loadMyLikes = async () => {
+          if (!VidaMarinaCloud.isConfigured || !currentUserId) {
+            setLikedPostIds(new Set());
+            return;
+          }
+          const ids = await VidaMarinaCloud.loadLikes(currentUserId);
+          if (!cancelled) setLikedPostIds(new Set(ids));
+        };
+        loadMyLikes();
+        return () => { cancelled = true; };
+      }, [currentUserId]);
+
+      // Persistencia local + nube. Foro y usuarios se comparten entre dispositivos.
       useEffect(() => {
         db.saveUsers(users);
         db.saveCurrentUserId(currentUserId);
@@ -1145,6 +1302,9 @@ class DatabaseService {
 
         if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current && !forumCloudApplyingRef.current) {
           VidaMarinaCloud.saveForum(forumPosts);
+        }
+        if (VidaMarinaCloud.isConfigured && usersCloudReadyRef.current && !usersCloudApplyingRef.current) {
+          VidaMarinaCloud.saveUsers(users);
         }
       }, [users, currentUserId, activities, badges, forumPosts, db]);
 
@@ -1341,13 +1501,46 @@ class DatabaseService {
         if (newlyUnlocked) triggerBadgeCelebration(newlyUnlocked);
       };
 
-      // Like en foro (Invocando método toggleLike de ForumPost)
-      const handleToggleLike = (postId) => {
-        const post = forumPosts.find(p => p.id === postId);
-        if (post) {
-          post.toggleLike();
-          setForumPosts([...forumPosts]);
+      // Like en foro: un solo like por usuario y publicación.
+      const handleToggleLike = async (postId) => {
+        if (!currentUser) {
+          setAuthTab('login');
+          setAuthModalOpen(true);
+          return;
         }
+
+        if (!VidaMarinaCloud.isConfigured) {
+          const alreadyLiked = likedPostIds.has(String(postId));
+          const next = new Set(likedPostIds);
+          if (alreadyLiked) next.delete(String(postId));
+          else next.add(String(postId));
+          setLikedPostIds(next);
+          setForumPosts(current => current.map(post => {
+            if (post.id !== postId) return post;
+            const copy = db.hydratePost(post.toJSON());
+            copy.toggleLike(alreadyLiked ? -1 : 1);
+            return copy;
+          }));
+          return;
+        }
+
+        const result = await VidaMarinaCloud.toggleLike(currentUser.id, postId);
+        if (result === null) return;
+
+        setLikedPostIds(prev => {
+          const next = new Set(prev);
+          if (result) next.add(String(postId));
+          else next.delete(String(postId));
+          return next;
+        });
+
+        const counts = await VidaMarinaCloud.loadLikeCounts();
+        setForumPosts(current => current.map(post => {
+          if (String(post.id) !== String(postId)) return post;
+          const copy = db.hydratePost(post.toJSON());
+          copy.likes = counts[String(postId)] || 0;
+          return copy;
+        }));
       };
 
       // Comentar en foro (Invocando método addComment de ForumPost)
@@ -1550,7 +1743,7 @@ class DatabaseService {
       };
 
       // Registro de nuevo usuario con contraseña (POO: Crea instancia de Volunteer)
-      const handleRegisterSubmit = (e) => {
+      const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         setAuthError('');
         if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) {
@@ -1580,7 +1773,11 @@ class DatabaseService {
           xp: 100
         });
 
-        setUsers([newUser, ...users]);
+        const updatedUsers = [newUser, ...users];
+        setUsers(updatedUsers);
+        if (VidaMarinaCloud.isConfigured) {
+          await VidaMarinaCloud.saveUsers(updatedUsers);
+        }
         setCurrentUserId(newUser.id);
         setAuthModalOpen(false);
         setRegName('');
@@ -2481,7 +2678,7 @@ class DatabaseService {
                           onClick={() => handleToggleLike(post.id)}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0b2545] hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-bold transition-all"
                         >
-                          <span>{post.likes} Me gusta</span>
+                          <span>{likedPostIds.has(String(post.id)) ? 'Quitar Me gusta' : 'Me gusta'} ({post.likes})</span>
                         </button>
                         <span className="text-slate-400">{post.comments.length} comentarios</span>
                       </div>
