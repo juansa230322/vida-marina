@@ -1225,6 +1225,35 @@ class DatabaseService {
       const usersCloudReadyRef = useRef(false);
       const usersCloudApplyingRef = useRef(false);
 
+      // Cola de guardado del foro: evita escrituras simultáneas y estados antiguos.
+      // La interfaz se actualiza de inmediato y Supabase recibe siempre la versión más reciente.
+      const forumSaveTimerRef = useRef(null);
+      const forumSavePendingRef = useRef(null);
+      const forumSaveInFlightRef = useRef(false);
+
+      const queueForumCloudSave = (posts) => {
+        if (!VidaMarinaCloud.isConfigured || !forumCloudReadyRef.current) return;
+        forumSavePendingRef.current = posts;
+
+        if (forumSaveTimerRef.current) clearTimeout(forumSaveTimerRef.current);
+        forumSaveTimerRef.current = setTimeout(async () => {
+          forumSaveTimerRef.current = null;
+          if (forumSaveInFlightRef.current) return;
+
+          const pending = forumSavePendingRef.current;
+          forumSavePendingRef.current = null;
+          if (!pending) return;
+
+          forumSaveInFlightRef.current = true;
+          try {
+            await VidaMarinaCloud.saveForum(pending);
+          } finally {
+            forumSaveInFlightRef.current = false;
+            if (forumSavePendingRef.current) queueForumCloudSave(forumSavePendingRef.current);
+          }
+        }, 30);
+      };
+
       useEffect(() => {
         let cancelled = false;
         let forumChannel = null;
@@ -1334,9 +1363,6 @@ class DatabaseService {
         db.saveBadges(badges);
         db.saveForum(forumPosts);
 
-        if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current && !forumCloudApplyingRef.current) {
-          VidaMarinaCloud.saveForum(forumPosts);
-        }
         if (VidaMarinaCloud.isConfigured && usersCloudReadyRef.current && !usersCloudApplyingRef.current) {
           VidaMarinaCloud.saveUsers(users);
         }
@@ -1528,9 +1554,7 @@ class DatabaseService {
 
         const updatedForumPosts = [newPost, ...forumPosts];
         setForumPosts(updatedForumPosts);
-        if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
-          await VidaMarinaCloud.saveForum(updatedForumPosts);
-        }
+        queueForumCloudSave(updatedForumPosts);
         setUsers([...users]);
         setNewPostTitle('');
         setNewPostContent('');
@@ -1604,9 +1628,7 @@ class DatabaseService {
           setReplyInputs({ ...replyInputs, [postId]: '' });
           const updatedForumPosts = [...forumPosts];
           setForumPosts(updatedForumPosts);
-          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
-            await VidaMarinaCloud.saveForum(updatedForumPosts);
-          }
+          queueForumCloudSave(updatedForumPosts);
           setUsers([...users]);
         }
       };
@@ -1618,9 +1640,7 @@ class DatabaseService {
           post.togglePin();
           const updatedForumPosts = [...forumPosts];
           setForumPosts(updatedForumPosts);
-          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
-            await VidaMarinaCloud.saveForum(updatedForumPosts);
-          }
+          queueForumCloudSave(updatedForumPosts);
         }
       };
 
@@ -1628,9 +1648,7 @@ class DatabaseService {
         if (confirm('¿Estás seguro de que deseas eliminar permanentemente este tema del foro?')) {
           const updatedForumPosts = forumPosts.filter(p => p.id !== postId);
           setForumPosts(updatedForumPosts);
-          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
-            await VidaMarinaCloud.saveForum(updatedForumPosts);
-          }
+          queueForumCloudSave(updatedForumPosts);
         }
       };
 
@@ -1640,9 +1658,7 @@ class DatabaseService {
           post.removeComment(commentIndex);
           const updatedForumPosts = [...forumPosts];
           setForumPosts(updatedForumPosts);
-          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
-            await VidaMarinaCloud.saveForum(updatedForumPosts);
-          }
+          queueForumCloudSave(updatedForumPosts);
         }
       };
 
@@ -1668,9 +1684,7 @@ class DatabaseService {
           });
           const updatedForumPosts = [...forumPosts];
           setForumPosts(updatedForumPosts);
-          if (VidaMarinaCloud.isConfigured && forumCloudReadyRef.current) {
-            await VidaMarinaCloud.saveForum(updatedForumPosts);
-          }
+          queueForumCloudSave(updatedForumPosts);
         }
         setEditingPost(null);
       };
