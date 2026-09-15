@@ -1467,6 +1467,10 @@ class DatabaseService {
       const [grantBadgeModalOpen, setGrantBadgeModalOpen] = useState(false);
       const [usersModalOpen, setUsersModalOpen] = useState(false);
       const [usersSearch, setUsersSearch] = useState('');
+      const [resetPasswordUser, setResetPasswordUser] = useState(null);
+      const [resetPasswordValue, setResetPasswordValue] = useState('');
+      const [resetPasswordConfirm, setResetPasswordConfirm] = useState('');
+      const [resetPasswordError, setResetPasswordError] = useState('');
       const [selectedVolunteerId, setSelectedVolunteerId] = useState('');
       const [badgeToGrantId, setBadgeToGrantId] = useState('badge-2');
 
@@ -1845,6 +1849,42 @@ class DatabaseService {
       };
 
       // Otorgar insignia (Invocando método awardTo de la clase Badge)
+      const handleResetUserPassword = async () => {
+        if (!resetPasswordUser) return;
+        const password = resetPasswordValue.trim();
+        const confirmation = resetPasswordConfirm.trim();
+
+        if (password.length < 4) {
+          setResetPasswordError('La contraseña debe tener mínimo 4 caracteres.');
+          return;
+        }
+        if (password !== confirmation) {
+          setResetPasswordError('Las contraseñas no coinciden.');
+          return;
+        }
+
+        const updatedUsers = users.map(u =>
+          u.id === resetPasswordUser.id ? { ...u, password } : u
+        );
+
+        setUsers(updatedUsers);
+        db.saveUsers(updatedUsers);
+
+        if (VidaMarinaCloud.isConfigured && usersCloudReadyRef.current) {
+          const saved = await VidaMarinaCloud.saveUsers(updatedUsers);
+          if (!saved) {
+            setResetPasswordError('No se pudo guardar el cambio en Supabase. Intenta nuevamente.');
+            return;
+          }
+        }
+
+        setResetPasswordUser(null);
+        setResetPasswordValue('');
+        setResetPasswordConfirm('');
+        setResetPasswordError('');
+        alert(`Contraseña restablecida correctamente para ${resetPasswordUser.name}.`);
+      };
+
       const handleGrantBadge = async (targetUserId, badgeId) => {
         const targetUser = users.find(u => u.id === targetUserId);
         const badge = badges.find(b => b.id === badgeId);
@@ -3649,12 +3689,107 @@ class DatabaseService {
                                   <span className="text-[10px] text-slate-500">Sin insignias todavía</span>
                                 )}
                               </div>
+
+                              <div className="pt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setResetPasswordUser(u);
+                                    setResetPasswordValue('');
+                                    setResetPasswordConfirm('');
+                                    setResetPasswordError('');
+                                  }}
+                                  className="w-full px-3 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 font-bold text-xs transition-all"
+                                >
+                                  Restablecer contraseña
+                                </button>
+                              </div>
                             </div>
                           );
                         })}
                       </div>
                     );
                   })()}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL RESTABLECER CONTRASEÑA (ADMIN) */}
+          {resetPasswordUser && (
+            <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+              <div className="relative w-full max-w-md bg-[#07192f] border-2 border-cyan-400/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetPasswordUser(null);
+                    setResetPasswordValue('');
+                    setResetPasswordConfirm('');
+                    setResetPasswordError('');
+                  }}
+                  className="absolute top-4 right-4 px-2 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-bold border border-slate-700"
+                >
+                  Cerrar
+                </button>
+
+                <div className="pr-10">
+                  <h3 className="text-xl font-black text-white">Restablecer contraseña</h3>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Cambia la contraseña de <span className="font-bold text-cyan-300">{resetPasswordUser.name}</span>.
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-1 break-all">{resetPasswordUser.email}</p>
+                </div>
+
+                {resetPasswordError && (
+                  <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-200 text-xs font-semibold">
+                    {resetPasswordError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Nueva contraseña</label>
+                  <input
+                    type="password"
+                    value={resetPasswordValue}
+                    onChange={e => setResetPasswordValue(e.target.value)}
+                    placeholder="Mínimo 4 caracteres"
+                    autoComplete="new-password"
+                    className="w-full bg-[#0b2545] border border-cyan-500/30 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Confirmar contraseña</label>
+                  <input
+                    type="password"
+                    value={resetPasswordConfirm}
+                    onChange={e => setResetPasswordConfirm(e.target.value)}
+                    placeholder="Repite la nueva contraseña"
+                    autoComplete="new-password"
+                    className="w-full bg-[#0b2545] border border-cyan-500/30 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetPasswordUser(null);
+                      setResetPasswordValue('');
+                      setResetPasswordConfirm('');
+                      setResetPasswordError('');
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetUserPassword}
+                    className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase shadow-md shadow-cyan-500/20"
+                  >
+                    Guardar nueva contraseña
+                  </button>
                 </div>
               </div>
             </div>
