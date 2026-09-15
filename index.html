@@ -1706,7 +1706,7 @@ class DatabaseService {
       };
 
       // Otorgar insignia (Invocando método awardTo de la clase Badge)
-      const handleGrantBadge = (targetUserId, badgeId) => {
+      const handleGrantBadge = async (targetUserId, badgeId) => {
         const targetUser = users.find(u => u.id === targetUserId);
         const badge = badges.find(b => b.id === badgeId);
         if (!targetUser || !badge) return;
@@ -1718,8 +1718,15 @@ class DatabaseService {
 
         const awarded = badge.awardTo(targetUser, currentUser ? currentUser.name : 'Dra. Marina Ríos');
         if (awarded) {
-          setUsers([...users]);
+          const updatedUsers = [...users];
+          setUsers(updatedUsers);
           setBadges([...badges]);
+
+          // La insignia queda guardada dentro del registro del usuario y se sincroniza
+          // con Supabase para que aparezca también en el teléfono/PC del usuario.
+          if (VidaMarinaCloud.isConfigured) {
+            await VidaMarinaCloud.saveUsers(updatedUsers);
+          }
 
           triggerBadgeCelebration({
             ...badge,
@@ -1730,15 +1737,20 @@ class DatabaseService {
       };
 
       // Revocar insignia (Método revokeFrom de Badge)
-      const handleRevokeBadge = (targetUserId, badgeId) => {
+      const handleRevokeBadge = async (targetUserId, badgeId) => {
         const targetUser = users.find(u => u.id === targetUserId);
         const badge = badges.find(b => b.id === badgeId);
         if (!targetUser || !badge) return;
 
         if (confirm(`¿Deseas revocar la insignia "${badge.name}" a ${targetUser.name}?`)) {
           badge.revokeFrom(targetUser);
-          setUsers([...users]);
+          const updatedUsers = [...users];
+          setUsers(updatedUsers);
           setBadges([...badges]);
+
+          if (VidaMarinaCloud.isConfigured) {
+            await VidaMarinaCloud.saveUsers(updatedUsers);
+          }
         }
       };
 
@@ -3391,7 +3403,7 @@ class DatabaseService {
                       <div className="p-4 rounded-2xl bg-[#0b2545] border border-cyan-500/20 text-center space-y-2">
                         <p className="text-xs font-bold text-amber-300">ℹ️ Aún no hay voluntarios registrados</p>
                         <p className="text-[11px] text-slate-300">
-                          Tan pronto como un voluntario cree una cuenta desde el botón "Crear Cuenta", aparecerá en esta lista para otorgarle insignias oficiales.
+                          Tan pronto como un voluntario cree una cuenta desde el botón "Crear Cuenta" en otro teléfono o computador, aparecerá aquí automáticamente para otorgarle insignias oficiales.
                         </p>
                         <div className="pt-2">
                           <button
