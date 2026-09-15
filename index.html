@@ -1021,34 +1021,37 @@ class DatabaseService {
 
       async saveForum(posts) {
         if (!vidaMarinaSupabase) return false;
+        const serializedPosts = posts.map(p => p.toJSON());
+        const sentAt = Date.now();
+
+        // 1) ENVIAR PRIMERO por Broadcast: el otro dispositivo recibe el cambio
+        // prácticamente de inmediato, sin esperar a que termine el INSERT/UPSERT.
+        try {
+          if (this.forumBroadcastChannel) {
+            await this.forumBroadcastChannel.send({
+              type: 'broadcast',
+              event: 'forum_update',
+              payload: { posts: serializedPosts, sentAt }
+            });
+          }
+        } catch (broadcastError) {
+          console.warn('VIDA MARINA - Broadcast no disponible:', broadcastError);
+        }
+
+        // 2) Persistir en PostgreSQL. Esto queda como fuente permanente.
         try {
           const { error } = await vidaMarinaSupabase
             .from('vida_marina_forum')
             .upsert({
               id: 1,
-              posts: posts.map(p => p.toJSON()),
-              updated_at: new Date().toISOString()
+              posts: serializedPosts,
+              updated_at: new Date(sentAt).toISOString()
             }, { onConflict: 'id' });
           if (error) {
             console.error('VIDA MARINA - Error guardando foro:', error);
             return false;
           }
-
-          // Usar el mismo canal Broadcast que está suscrito en los demás dispositivos.
-          // Así no se crean canales temporales que puedan competir entre sí.
-          try {
-            if (this.forumBroadcastChannel) {
-              await this.forumBroadcastChannel.send({
-                type: 'broadcast',
-                event: 'forum_update',
-                payload: { posts: posts.map(p => p.toJSON()), sentAt: Date.now() }
-              });
-            }
-          } catch (broadcastError) {
-            console.warn('VIDA MARINA - Broadcast no disponible; la base de datos conserva el cambio:', broadcastError);
-          }
-
-          console.log('VIDA MARINA - Foro guardado y enviado en tiempo real.');
+          console.log('VIDA MARINA - Foro guardado en Supabase.');
           return true;
         } catch (error) {
           console.error('VIDA MARINA - Excepción guardando foro:', error);
@@ -1061,11 +1064,28 @@ class DatabaseService {
       subscribe(onPosts) {
         if (!vidaMarinaSupabase) return null;
         const channel = vidaMarinaSupabase
-          .channel('vida-marina-forum-sync')
+          .channel('vida-marina-forum-sync', { config: { broadcast: { ack: true, self: false } } })
           .on('broadcast', { event: 'forum_update' }, ({ payload }) => {
-            if (payload && Array.isArray(payload.posts)) onPosts(payload.posts);
+            if (payload && Array.isArray(payload.posts)) {
+              console.log('VIDA MARINA - ⚡ Cambio recibido por Broadcast.');
+              onPosts(payload.posts, payload.sentAt || Date.now());
+            }
           })
-          .subscribe(status => console.log('VIDA MARINA - Sincronización rápida del foro:', status));
+          // Respaldo: si Broadcast falla, PostgreSQL Realtime también actualiza.
+          // La interfaz ignora eventos antiguos mediante sentAt/updated_at.
+          .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'vida_marina_forum',
+            filter: 'id=eq.1'
+          }, payload => {
+            if (payload.new && Array.isArray(payload.new.posts)) {
+              const stamp = payload.new.updated_at ? Date.parse(payload.new.updated_at) : Date.now();
+              console.log('VIDA MARINA - 🔄 Cambio recibido por Realtime.');
+              onPosts(payload.new.posts, stamp);
+            }
+          })
+          .subscribe(status => console.log('VIDA MARINA - Foro en tiempo real:', status));
         this.forumBroadcastChannel = channel;
         return channel;
       },
@@ -1219,6 +1239,7 @@ class DatabaseService {
       // Sincronización inicial del foro con Supabase + actualizaciones en tiempo real.
       const forumCloudReadyRef = useRef(false);
       const forumCloudApplyingRef = useRef(false);
+      const forumLastSyncAtRef = useRef(0);
       const usersCloudReadyRef = useRef(false);
       const usersCloudApplyingRef = useRef(false);
 
@@ -1283,6 +1304,7 @@ class DatabaseService {
           if (cancelled) return;
 
           if (Array.isArray(cloudPosts)) {
+            forumLastSyncAtRef.current = Date.now();
             forumCloudApplyingRef.current = true;
             setForumPosts(cloudPosts.map(p => db.hydratePost(p)));
             setTimeout(() => { forumCloudApplyingRef.current = false; }, 0);
@@ -1307,10 +1329,19 @@ class DatabaseService {
             await applyLikeCounts();
           }
 
-          forumChannel = VidaMarinaCloud.subscribe(cloudPostsFromRealtime => {
-            if (cancelled) return;
+          forumChannel = VidaMarinaCloud.subscribe((cloudPostsFromRealtime, syncAt) => {
+            if (cancelled || !Array.isArray(cloudPostsFromRealtime)) return;
+
+            // Ignorar eventos viejos. Esto evita que una respuesta atrasada de
+            // Realtime pueda hacer reaparecer o borrar comentarios recientes.
+            const stamp = Number(syncAt) || Date.now();
+            if (stamp < forumLastSyncAtRef.current) return;
+            forumLastSyncAtRef.current = stamp;
+
             forumCloudApplyingRef.current = true;
-            setForumPosts(cloudPostsFromRealtime.map(p => db.hydratePost(p)));
+            const hydrated = cloudPostsFromRealtime.map(p => db.hydratePost(p));
+            setForumPosts(hydrated);
+            db.saveForum(hydrated);
             setTimeout(() => { forumCloudApplyingRef.current = false; }, 0);
           });
 
